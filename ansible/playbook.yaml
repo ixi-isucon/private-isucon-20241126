@@ -6,7 +6,8 @@
     - name: stop mysql
       service:
         name: mysql
-        state: disabled
+        state: stopped
+        enabled: no
 
 - name: db
   hosts: db
@@ -17,3 +18,4 @@
       service:
         name: nginx
         state: disabled
+        enabled: no

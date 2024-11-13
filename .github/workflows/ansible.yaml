@@ -5,6 +5,10 @@ on:
       - main
   workflow_dispatch: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # Ansible のデプロイが並行するとおかしいことになるので、途中でキャンセルしないようにする
+
 env:
   CHANNEL_ID: "C080SL62CLC" # ixi_notify
 jobs:
