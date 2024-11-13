@@ -1,0 +1,31 @@
+name: Ansible check
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: ansible check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: ansible
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.COMMON_PRIVATE_KEY }}
+
+      - name: Run playbook
+        run: |
+          cd ansible
+          ansible-playbook playbook.yaml --diff | tee -a ansible.log
+
+      - name: Write a comment
+        if: github.event_name == 'pull_request'
+        uses: thollander/actions-comment-pull-request@v2.5.0
+        with:
+          file-path: ansible.log
+          comment_tag: execution

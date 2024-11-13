@@ -5,6 +5,8 @@ on:
       - main
   workflow_dispatch: {}
 
+env:
+  CHANNEL_ID: "C080SL62CLC" # ixi_notify
 jobs:
   deploy:
     name: Deploy
@@ -15,24 +17,31 @@ jobs:
         with:
           packages: ansible
 
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.COMMON_PRIVATE_KEY }}
+
       - name: Run playbook
         run: |
-          ansible-playbook playbook.yaml -vvv --diff | tee -a ansible.log
+          cd ansible
+          ansible-playbook playbook.yaml --diff  | tee -a ansible.log
 
-      - name: Upload log
-        uses: actions/upload-artifact@v4
-        with:
-          name: ansible-log
+      - name: notification
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: ${{ env.CHANNEL_ID }}
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_TITLE: "Ansible Result"
+          SLACK_MESSAGE_ON_SUCCESS: "Ansible playbook executed successfully."
+          SLACK_MESSAGE_ON_FAILURE: "Ansible playbook execution failed."
+          SLACK_MESSAGE_ON_CANCEL: "Ansible playbook execution was canceled."
+          SLACK_TOKEN: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
 
       - uses: yanskun/slack-file-upload-action@v1
+        if: always()
         with:
-          # Required
-          # Slack app token
-          # Permission: files:write
           token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
-          # Required
-          # Path to file
-          path: ansible.log
-          # Required
-          # Slack Channel ID fo upload
-          channel_id: "C080SL62CLC" # isucon_ixi_notify
+          path: ansible/ansible.log
+          channel_id: ${{ env.CHANNEL_ID }}
