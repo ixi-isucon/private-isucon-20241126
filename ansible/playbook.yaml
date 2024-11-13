@@ -2,3 +2,18 @@
   hosts: web
   roles:
     - nginx
+  tasks:
+    - name: stop mysql
+      service:
+        name: mysql
+        state: disabled
+
+- name: db
+  hosts: db
+  roles:
+    - mysql
+  tasks:
+    - name: stop nginx
+      service:
+        name: nginx
+        state: disabled

@@ -9,7 +9,7 @@ all:
     db:
       hosts:
         # isu1:
-        # isu2:
+        isu2:
         # isu3:
     app:
       hosts:

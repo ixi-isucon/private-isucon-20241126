@@ -27,5 +27,5 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v2.5.0
         with:
-          file-path: ansible.log
+          file-path: ansible/ansible.log
           comment_tag: execution
