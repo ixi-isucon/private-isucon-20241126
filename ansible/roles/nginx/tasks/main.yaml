@@ -1,0 +1,35 @@
+# Nginx の設定ファイルのバックアップ
+- name: backup access log
+  copy:
+    src: /var/log/nginx/access.log
+    dest: /var/log/nginx/access.log_{{ now(fmt='%H:%M:%S') }}
+    remote_src: yes
+  changed_when: False
+
+- name: backup nginx configuration
+  copy:
+    src: /etc/nginx/nginx.conf
+    dest: /etc/nginx/nginx.conf_{{ now(fmt='%H:%M:%S') }}
+    remote_src: yes
+  changed_when: False
+
+# Nginx の設定ファイルのコピー
+- name: copy nginx configuration
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  notify:
+    - restart nginx
+  loop:
+    - { src: nginx.conf, dest: /etc/nginx/nginx.conf }
+
+# Nginx の設定ファイルのチェック
+- name: check nginx configuration
+  command: nginx -t -c /etc/nginx/nginx.conf
+  register: result
+  changed_when: False
+
+- name: check nginx configuration
+  fail:
+    msg: "nginx configuration is invalid"
+  when: result.rc != 0
