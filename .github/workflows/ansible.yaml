@@ -1,0 +1,38 @@
+name: Ansible
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: ansible
+
+      - name: Run playbook
+        run: |
+          ansible-playbook playbook.yaml -vvv --diff | tee -a ansible.log
+
+      - name: Upload log
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-log
+
+      - uses: yanskun/slack-file-upload-action@v1
+        with:
+          # Required
+          # Slack app token
+          # Permission: files:write
+          token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
+          # Required
+          # Path to file
+          path: ansible.log
+          # Required
+          # Slack Channel ID fo upload
+          channel_id: "C080SL62CLC" # isucon_ixi_notify
