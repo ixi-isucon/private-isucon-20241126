@@ -6,8 +6,6 @@
   changed_when: False
   loop:
     - /etc/mysql/my.cnf
-    - /var/log/mysql/mysqld-slow.log
-
 
 - name: copy mysql configuration
   copy:
@@ -17,3 +15,13 @@
     - restart mysql
   loop:
     - { src: my.cnf, dest: /etc/mysql/my.cnf }
+
+- name: move files if exists
+  command: mv {{ item.src }} {{ item.dest }}
+  loop:
+    - {
+        src:  /var/log/mysql/mysqld-slow.log,
+        dest: "/var/log/mysql/mysqld-slow.log_{{ now(fmt='%H:%M:%S') }}"
+      }
+  changed_when: False
+  ignore_errors: yes

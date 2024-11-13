@@ -17,5 +17,5 @@
     - name: stop nginx
       service:
         name: nginx
-        state: disabled
+        state: stopped
         enabled: no

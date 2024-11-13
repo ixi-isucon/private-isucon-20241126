@@ -28,10 +28,9 @@ jobs:
 
       - name: Run playbook
         run: |
-          set -x
           set -o pipefail
           cd ansible
-          ansible-playbook playbook.yaml --diff  | tee -a ansible.log
+          ansible-playbook playbook.yaml --diff | tee -a ansible.log
 
       - name: notification
         if: always()
