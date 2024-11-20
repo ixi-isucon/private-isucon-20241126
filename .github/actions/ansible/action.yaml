@@ -40,7 +40,7 @@ runs:
       uses: rtCamp/action-slack-notify@v2
       env:
         SLACK_CHANNEL: ${{ inputs.channel_id }}
-        SLACK_COLOR: ${{ steps.run-ansible.outputs.status }}
+        SLACK_COLOR: ${{ steps.run-ansible.outcome }}
         SLACK_TITLE: "Ansible Result"
         SLACK_MESSAGE_ON_SUCCESS: "Ansible playbook executed successfully."
         SLACK_MESSAGE_ON_FAILURE: "Ansible playbook execution failed."
