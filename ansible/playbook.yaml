@@ -1,3 +1,8 @@
+- name: all
+  hosts: all
+  roles:
+    - {name: common, tags: common}
+
 - name: web
   hosts: web
   roles:

@@ -1,0 +1,9 @@
+- name: install ubuntu packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - dstat
+    - htop
+    - net-tools
+    - sysstat
