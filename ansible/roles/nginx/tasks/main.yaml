@@ -6,22 +6,17 @@
     remote_src: yes
   changed_when: False
 
-- name: backup nginx configuration
-  copy:
-    src: /etc/nginx/nginx.conf
-    dest: /etc/nginx/nginx.conf_{{ now(fmt='%H:%M:%S') }}
-    remote_src: yes
-  changed_when: False
-
 # Nginx の設定ファイルのコピー
 - name: copy nginx configuration
   copy:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
+    backup: yes
   notify:
     - restart nginx
   loop:
     - { src: nginx.conf, dest: /etc/nginx/nginx.conf }
+    - { src: isucon.conf, dest: /etc/nginx/sites-enabled/isucon.conf }
 
 # Nginx の設定ファイルのチェック
 - name: check nginx configuration

@@ -4,6 +4,7 @@
     state: present
   with_items:
     - dstat
+    - golang
     - htop
     - net-tools
     - sysstat
