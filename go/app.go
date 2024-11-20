@@ -599,15 +599,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mime := ""
+	fileExt := "jpg"
 	if file != nil {
 		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
+			fileExt = "jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
+			fileExt = "png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
+			fileExt = "gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -618,13 +622,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filedata, err := io.ReadAll(file)
+	fileData, err := io.ReadAll(file)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	if len(filedata) > UploadLimit {
+	if len(fileData) > UploadLimit {
 		session := getSession(r)
 		session.Values["notice"] = "ファイルサイズが大きすぎます"
 		session.Save(r, w)
@@ -638,7 +642,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		query,
 		me.ID,
 		mime,
-		filedata,
+		"", // おもいので空文字列 （後でカラムごと消す）
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -652,39 +656,22 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
-}
+	go func() {
+		// fileData を /home/isucon/private_isu/webapp/public/image に保存
+		path := "/home/isucon/private_isu/webapp/public/image"
+		filename := fmt.Sprintf("%d.%s", pid, fileExt)
 
-func getImage(w http.ResponseWriter, r *http.Request) {
-	pidStr := r.PathValue("id")
-	pid, err := strconv.Atoi(pidStr)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	post := Post{}
-	err = db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-
-	ext := r.PathValue("ext")
-
-	if ext == "jpg" && post.Mime == "image/jpeg" ||
-		ext == "png" && post.Mime == "image/png" ||
-		ext == "gif" && post.Mime == "image/gif" {
-		w.Header().Set("Content-Type", post.Mime)
-		_, err := w.Write(post.Imgdata)
+		f, err := os.Create(path + "/" + filename)
 		if err != nil {
 			log.Print(err)
 			return
 		}
-		return
-	}
 
-	w.WriteHeader(http.StatusNotFound)
+		defer f.Close()
+		f.Write(fileData)
+	}()
+
+	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
 
 func postComment(w http.ResponseWriter, r *http.Request) {
