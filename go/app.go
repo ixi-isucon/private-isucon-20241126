@@ -76,20 +76,6 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
-func dbInitialize() {
-	sqls := []string{
-		"DELETE FROM users WHERE id > 1000",
-		"DELETE FROM posts WHERE id > 10000",
-		"DELETE FROM comments WHERE id > 100000",
-		"UPDATE users SET del_flg = 0",
-		"UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
-	}
-
-	for _, sql := range sqls {
-		db.Exec(sql)
-	}
-}
-
 func tryLogin(accountName, password string) *User {
 	u := User{}
 	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
@@ -792,10 +778,6 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// host := os.Getenv("ISUCONP_DB_HOST")
-	// if host == "" {
-	// 	host = "localhost"
-	// }
 	host := "192.168.1.11"
 	port := os.Getenv("ISUCONP_DB_PORT")
 	if port == "" {
@@ -805,15 +787,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to read DB port number from an environment variable ISUCONP_DB_PORT.\nError: %s", err.Error())
 	}
-	user := os.Getenv("ISUCONP_DB_USER")
-	if user == "" {
-		user = "root"
-	}
-	password := os.Getenv("ISUCONP_DB_PASSWORD")
-	dbname := os.Getenv("ISUCONP_DB_NAME")
-	if dbname == "" {
-		dbname = "isuconp"
-	}
+	user := "isuconp"
+	password := "isuconp"
+	dbName := "isuconp"
 
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
@@ -821,7 +797,7 @@ func main() {
 		password,
 		host,
 		port,
-		dbname,
+		dbName,
 	)
 
 	db, err = sqlx.Open("mysql", dsn)
