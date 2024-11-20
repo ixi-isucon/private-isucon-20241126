@@ -63,3 +63,4 @@ jobs:
         with:
           private_key: ${{ secrets.COMMON_PRIVATE_KEY }}
           slack_bot_token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
+          ansible_args: "--tags web,db"
