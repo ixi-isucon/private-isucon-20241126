@@ -2,6 +2,11 @@
   hosts: all
   roles:
     - {name: common, tags: common}
+    - name: stop app(ruby)
+      service:
+        name: isu-ruby
+        state: stopped
+        enabled: no
 
 - name: web
   hosts: web
@@ -42,7 +47,7 @@
 - name: no_app
   hosts: no_app
   tasks:
-    - name: stop app
+    - name: stop app(go)
       service:
         name: isu-go
         state: stopped

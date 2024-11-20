@@ -30,7 +30,7 @@ jobs:
           for file in ${ALL_CHANGED_FILES}; do
             # もし go.mod/go.sum/.go ファイルが修正されている場合は
             # ENABLE_GO_BUILD を true にする
-            if [[ "${file}" == "go.mod" || "${file}" == "go.sum" || "${file}" == *.go ]]; then
+            if [[ "${file}" == "go.mod" || "${file}" == "go.sum" || "${file}" == "Makefile" || "${file}" == *.go ]]; then
               echo "ENABLE_GO_BUILD=true" >> $GITHUB_ENV
               break
             fi
