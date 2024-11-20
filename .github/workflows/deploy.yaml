@@ -42,10 +42,23 @@ jobs:
           go-version-file: go/go.mod
 
       # - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
-      - run: |
+      - id: build-go
+        run: |
           cd go
           make app
           mv app /tmp/app
+
+      - name: notification
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: "C080SL62CLC"
+          SLACK_COLOR: ${{ steps.build-go.outcome }}
+          SLACK_TITLE: "App のビルドに失敗しました"
+          SLACK_MESSAGE_ON_SUCCESS: "App のビルドに成功しました"
+          SLACK_MESSAGE_ON_FAILURE: "App のビルドに失敗しました"
+          SLACK_MESSAGE_ON_CANCEL: "App のビルドがキャンセルされました"
+          SLACK_TOKEN: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
 
       # - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
       - uses: ./.github/actions/ansible
