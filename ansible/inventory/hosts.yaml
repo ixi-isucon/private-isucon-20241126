@@ -21,18 +21,18 @@ all:
       hosts:
         # isu1:
         isu2:
-        # isu3:
+        isu3:
 
     no_db:
       hosts:
-        # isu1:
+        isu1:
         # isu2:
         isu3:
 
     no_app:
       hosts:
         # isu1:
-        # isu2:
+        isu2:
         isu3:
 
   hosts:
