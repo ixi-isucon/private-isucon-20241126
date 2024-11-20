@@ -13,17 +13,35 @@ all:
         # isu3:
     app:
       hosts:
-        # isu1:
+        isu1:
         # isu2:
         # isu3:
 
+    no_web:
+      hosts:
+        # isu1:
+        isu2:
+        # isu3:
+
+    no_db:
+      hosts:
+        # isu1:
+        # isu2:
+        isu3:
+
+    no_app:
+      hosts:
+        # isu1:
+        # isu2:
+        isu3:
+
   hosts:
     isu1:
-      ansible_host: 54.199.34.186
+      ansible_host: 52.197.22.205
       ansible_user: isucon
     isu2:
-      ansible_host: 13.114.161.39
+      ansible_host: 57.180.242.169
       ansible_user: isucon
     isu3:
-      ansible_host: 13.231.210.201
+      ansible_host: 35.77.98.37
       ansible_user: isucon

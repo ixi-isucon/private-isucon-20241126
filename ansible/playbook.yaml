@@ -1,7 +1,32 @@
 - name: web
   hosts: web
   roles:
-    - nginx
+    - {name: nginx, tags: nginx}
+
+- name: db
+  hosts: db
+  roles:
+    - {name: mysql, tags: mysql}
+
+- name: app
+  hosts: app
+  roles:
+    - {name: app, tags: app}
+
+
+# ---- 停止系 ----
+
+- name: no_web
+  hosts: no_web
+  tasks:
+    - name: stop nginx
+      service:
+        name: nginx
+        state: stopped
+        enabled: no
+
+- name: no_db
+  hosts: no_db
   tasks:
     - name: stop mysql
       service:
@@ -9,13 +34,11 @@
         state: stopped
         enabled: no
 
-- name: db
-  hosts: db
-  roles:
-    - mysql
+- name: no_app
+  hosts: no_app
   tasks:
-    - name: stop nginx
+    - name: stop app
       service:
-        name: nginx
+        name: isu-go
         state: stopped
         enabled: no

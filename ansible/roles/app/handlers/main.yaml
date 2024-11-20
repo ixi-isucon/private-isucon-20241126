@@ -1,5 +1,5 @@
-- name: restart nginx
+- name: restart app
   service:
-    name: nginx
+    name: isu-go
     state: restarted
     enabled: yes

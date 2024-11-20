@@ -1,0 +1,52 @@
+name: "Ansible"
+inputs:
+  private_key:
+    required: true
+
+  slack_bot_token:
+    required: true
+
+  channel_id:
+    required: true
+    default: "C080SL62CLC"
+
+  ansible_args:
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: ansible
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ inputs.private_key }}
+
+    - name: Run playbook
+      run: |
+        set -o pipefail
+        cd ansible
+        ansible-playbook playbook.yaml --diff ${{ inputs.ansible_args }} \
+          | tee -a ansible.log
+
+    - name: notification
+      if: always()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_CHANNEL: ${{ inputs.channel_id }}
+        SLACK_COLOR: ${{ job.status }}
+        SLACK_TITLE: "Ansible Result"
+        SLACK_MESSAGE_ON_SUCCESS: "Ansible playbook executed successfully."
+        SLACK_MESSAGE_ON_FAILURE: "Ansible playbook execution failed."
+        SLACK_MESSAGE_ON_CANCEL: "Ansible playbook execution was canceled."
+        SLACK_TOKEN: ${{ inputs.slack_bot_token }}
+
+    - uses: yanskun/slack-file-upload-action@v1
+      if: always()
+      with:
+        token: ${{ inputs.slack_bot_token }}
+        path: ansible/ansible.log
+        channel_id: ${{ inputs.channel_id }}

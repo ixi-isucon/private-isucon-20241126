@@ -1,0 +1,10 @@
+- name: upload app
+  copy:
+    src: /tmp/app
+    dest: /home/isucon/private_isu/webapp/golang/app
+    mode: 0755
+    owner: isucon
+    group: isucon
+    backup: yes
+  notify:
+    - restart app
