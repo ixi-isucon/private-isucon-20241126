@@ -52,7 +52,7 @@ jobs:
         with:
           private_key: ${{ secrets.COMMON_PRIVATE_KEY }}
           slack_bot_token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
-          ansible_args: "--tags app"
+          ansible_args: "--tags app" # app のみを実行する
 
   ansible:
     name: Ansible
@@ -63,4 +63,4 @@ jobs:
         with:
           private_key: ${{ secrets.COMMON_PRIVATE_KEY }}
           slack_bot_token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
-          ansible_args: "--tags web,db"
+          ansible_args: "--skip-tags app" # app 以外を実行する
