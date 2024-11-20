@@ -13,6 +13,10 @@ inputs:
   ansible_args:
     required: false
 
+  notification_title:
+    required: false
+    default: "Ansible Result"
+
 runs:
   using: "composite"
   steps:
@@ -41,10 +45,10 @@ runs:
       env:
         SLACK_CHANNEL: ${{ inputs.channel_id }}
         SLACK_COLOR: ${{ steps.run-ansible.outcome }}
-        SLACK_TITLE: "Ansible Result"
-        SLACK_MESSAGE_ON_SUCCESS: "Ansible playbook executed successfully."
-        SLACK_MESSAGE_ON_FAILURE: "Ansible playbook execution failed."
-        SLACK_MESSAGE_ON_CANCEL: "Ansible playbook execution was canceled."
+        SLACK_TITLE: ${{ inputs.notification_title }}
+        SLACK_MESSAGE_ON_SUCCESS: "${{ inputs.notification_title }} executed successfully."
+        SLACK_MESSAGE_ON_FAILURE: "${{ inputs.notification_title }} execution failed."
+        SLACK_MESSAGE_ON_CANCEL: "${{ inputs.notification_title }} execution was canceled."
         SLACK_TOKEN: ${{ inputs.slack_bot_token }}
 
     - uses: yanskun/slack-file-upload-action@v1

@@ -53,6 +53,7 @@ jobs:
           private_key: ${{ secrets.COMMON_PRIVATE_KEY }}
           slack_bot_token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
           ansible_args: "--tags app" # app のみを実行する
+          inputs.notification_title: "App デプロイ"
 
   ansible:
     name: Ansible
@@ -64,3 +65,4 @@ jobs:
           private_key: ${{ secrets.COMMON_PRIVATE_KEY }}
           slack_bot_token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
           ansible_args: "--skip-tags app" # app 以外を実行する
+          inputs.notification_title: "Web / DB デプロイ"
