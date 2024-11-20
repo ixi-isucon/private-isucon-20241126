@@ -2,6 +2,7 @@
   hosts: all
   roles:
     - {name: common, tags: common}
+  tasks:
     - name: stop app(ruby)
       service:
         name: isu-ruby

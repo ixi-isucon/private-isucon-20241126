@@ -15,40 +15,40 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
+      #   with:
+      #     fetch-depth: 2
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v45
-      # NOTE: `since_last_remote_commit: true` is implied by default and falls back to the previous local commit.
+      # - name: Get changed files
+      #   id: changed-files
+      #   uses: tj-actions/changed-files@v45
+      # # NOTE: `since_last_remote_commit: true` is implied by default and falls back to the previous local commit.
 
-      - name: List all changed files
-        env:
-          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
-        run: |
-          for file in ${ALL_CHANGED_FILES}; do
-            # もし go.mod/go.sum/.go ファイルが修正されている場合は
-            # ENABLE_GO_BUILD を true にする
-            if [[ "${file}" == "go.mod" || "${file}" == "go.sum" || "${file}" == "Makefile" || "${file}" == *.go ]]; then
-              echo "ENABLE_GO_BUILD=true" >> $GITHUB_ENV
-              break
-            fi
-          done
+      # - name: List all changed files
+      #   env:
+      #     ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+      #   run: |
+      #     for file in ${ALL_CHANGED_FILES}; do
+      #       # もし go.mod/go.sum/.go ファイルが修正されている場合は
+      #       # ENABLE_GO_BUILD を true にする
+      #       if [[ "${file}" == "go.mod" || "${file}" == "go.sum" || "${file}" == "Makefile" || "${file}" == *.go ]]; then
+      #         echo "ENABLE_GO_BUILD=true" >> $GITHUB_ENV
+      #         break
+      #       fi
+      #     done
 
-      - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
-        uses: actions/setup-go@v5
+      # - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
+      - uses: actions/setup-go@v5
         with:
           go-version-file: go/go.mod
 
-      - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
-        run: |
+      # - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
+      - run: |
           cd go
           make app
           mv app /tmp/app
 
-      - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
-        uses: ./.github/actions/ansible
+      # - if: env.ENABLE_GO_BUILD == 'true' || github.event_name == 'workflow_dispatch'
+      - uses: ./.github/actions/ansible
         with:
           private_key: ${{ secrets.COMMON_PRIVATE_KEY }}
           slack_bot_token: ${{ secrets.IXI_SLACK_OAUTH_BOT_TOKEN }}
