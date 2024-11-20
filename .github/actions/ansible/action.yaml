@@ -26,7 +26,8 @@ runs:
       with:
         ssh-private-key: ${{ inputs.private_key }}
 
-    - name: Run playbook
+    - id: run-ansible
+      name: Run playbook
       shell: bash
       run: |
         set -o pipefail
@@ -39,7 +40,7 @@ runs:
       uses: rtCamp/action-slack-notify@v2
       env:
         SLACK_CHANNEL: ${{ inputs.channel_id }}
-        SLACK_COLOR: ${{ job.status }}
+        SLACK_COLOR: ${{ steps.run-ansible.outputs.status }}
         SLACK_TITLE: "Ansible Result"
         SLACK_MESSAGE_ON_SUCCESS: "Ansible playbook executed successfully."
         SLACK_MESSAGE_ON_FAILURE: "Ansible playbook execution failed."
