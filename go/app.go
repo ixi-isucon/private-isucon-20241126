@@ -543,7 +543,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 
 	err = db.Select(&postAndUsers,
 
-		"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `created_at` <= ? ORDER BY p.created_at DESC LIMIT ?",
+		"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND p.created_at <= ? ORDER BY p.created_at DESC LIMIT ?",
 		t.Format(ISO8601Format), postsPerPage)
 	if err != nil {
 		log.Print(err)
