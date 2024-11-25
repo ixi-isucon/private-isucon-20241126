@@ -1,15 +1,3 @@
-- name: install ubuntu packages
-  package:
-    name: "{{ item }}"
-    state: present
-  with_items:
-    - dstat
-    - golang
-    - htop
-    - net-tools
-    - sysstat
-    - percona-toolkit # for pt-query-digest
-
 - name: set hostname
   hostname:
     name: "{{ inventory_hostname }}"
@@ -26,3 +14,30 @@
     src: .bash_aliases
     dest: /root/.bash_aliases
     mode: 0644
+
+- name: install ubuntu packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - dstat
+    - golang
+    - htop
+    - net-tools
+    - sysstat
+    - percona-toolkit # for pt-query-digest
+
+- block:
+  - name: download alp
+    get_url:
+      url: https://github.com/tkuchiki/alp/releases/download/v1.0.21/alp_linux_{{ arch }}.zip
+      dest: /var/tmp/alp_linux_{{ arch }}.zip
+    register: alp_download
+
+  - name: extract alp
+    unarchive:
+      src: /var/tmp/alp_linux_{{ arch }}.zip
+      dest: /usr/local/bin
+      remote_src: yes
+      creates: /usr/local/bin/alp
+    when: alp_download.changed and not ansible_check_mode
