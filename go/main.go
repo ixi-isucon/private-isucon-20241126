@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +13,9 @@ import (
 )
 
 func main() {
+	cpu := runtime.NumCPU()
+	runtime.GOMAXPROCS(cpu)
+
 	host := "192.168.1.11"
 	port := os.Getenv("ISUCONP_DB_PORT")
 	if port == "" {
