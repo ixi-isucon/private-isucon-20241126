@@ -37,11 +37,11 @@ all:
 
   hosts:
     isu1:
-      ansible_host: 52.197.22.205
+      ansible_host: 52.194.243.138
       ansible_user: isucon
     isu2:
-      ansible_host: 57.180.242.169
+      ansible_host: 3.112.19.84
       ansible_user: isucon
     isu3:
-      ansible_host: 35.77.98.37
+      ansible_host: 3.113.12.237
       ansible_user: isucon
