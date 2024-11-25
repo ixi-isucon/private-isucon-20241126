@@ -542,10 +542,9 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	postAndUsers := []PostAndUser{}
 
 	err = db.Select(&postAndUsers,
-		fmt.Sprintf(
-			"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `created_at` <= ? ORDER BY p.created_at DESC LIMIT %d", postsPerPage),
-		t.Format(ISO8601Format),
-	)
+
+		"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `created_at` <= ? ORDER BY p.created_at DESC LIMIT ?",
+		t.Format(ISO8601Format), postsPerPage)
 	if err != nil {
 		log.Print(err)
 		return
@@ -584,8 +583,8 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	postAndUsers := []PostAndUser{}
 
-	err = db.Get(&postAndUsers,
-		fmt.Sprintf("SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `id` = ? ORDER BY p.created_at DESC LIMIT %d", postsPerPage), pid)
+	err = db.Select(&postAndUsers,
+		"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `id` = ? ORDER BY p.created_at DESC LIMIT ?", pid, postsPerPage)
 	if err != nil {
 		log.Print(err)
 		return
