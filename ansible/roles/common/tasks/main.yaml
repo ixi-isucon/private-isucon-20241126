@@ -8,3 +8,4 @@
     - htop
     - net-tools
     - sysstat
+    - percona-toolkit # for pt-query-digest
