@@ -65,6 +65,15 @@ type Comment struct {
 	User      User
 }
 
+type PostAndUser struct {
+	ID          int       `db:"id"`
+	UserID      int       `db:"user_id"`
+	Body        string    `db:"body"`
+	CreatedAt   time.Time `db:"created_at"`
+	Mime        string    `db:"mime"`
+	AccountName string    `db:"account_name"`
+}
+
 func init() {
 	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
 	if memdAddr == "" {
@@ -189,19 +198,19 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.Comments = comments
 
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
-		}
+		// err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
+		// if err != nil {
+		// 	return nil, err
+		// }
 
 		p.CSRFToken = csrfToken
 
-		if p.User.DelFlg == 0 {
-			posts = append(posts, p)
-		}
-		if len(posts) >= postsPerPage {
-			break
-		}
+		// if p.User.DelFlg == 0 {
+		posts = append(posts, p)
+		// }
+		// if len(posts) >= postsPerPage {
+		// 	break
+		// }
 	}
 
 	return posts, nil
@@ -366,17 +375,33 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func convertPostAndUsersToPosts(data []PostAndUser) []Post {
+	posts := make([]Post, len(data))
+	for i, d := range data {
+		posts[i] = Post{
+			ID:        d.ID,
+			UserID:    d.UserID,
+			Body:      d.Body,
+			CreatedAt: d.CreatedAt,
+			Mime:      d.Mime,
+		}
+	}
+	return posts
+}
+
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 
-	results := []Post{}
+	postAndUsers := []PostAndUser{}
 
-	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
+	err := db.Select(&postAndUsers,
+		fmt.Sprintf("SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 ORDER BY p.created_at DESC LIMIT %d", postsPerPage))
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
+	results := convertPostAndUsersToPosts(postAndUsers)
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
 		log.Print(err)
@@ -415,13 +440,16 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
+	postAndUsers := []PostAndUser{}
 
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
+	err = db.Select(&postAndUsers,
+		fmt.Sprintf("SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 ORDER BY p.created_at DESC LIMIT %d", postsPerPage))
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
+	results := convertPostAndUsersToPosts(postAndUsers)
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
@@ -504,12 +532,26 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
+	// results := []Post{}
+	// err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+
+	postAndUsers := []PostAndUser{}
+
+	err = db.Select(&postAndUsers,
+		fmt.Sprintf(
+			"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `created_at` <= ? ORDER BY p.created_at DESC LIMIT %d", postsPerPage),
+		t.Format(ISO8601Format),
+	)
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
+	results := convertPostAndUsersToPosts(postAndUsers)
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
@@ -540,12 +582,16 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	postAndUsers := []PostAndUser{}
+
+	err = db.Get(&postAndUsers,
+		fmt.Sprintf("SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND `id` = ? ORDER BY p.created_at DESC LIMIT %d", postsPerPage), pid)
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
+	results := convertPostAndUsersToPosts(postAndUsers)
 
 	posts, err := makePosts(results, getCSRFToken(r), true)
 	if err != nil {
