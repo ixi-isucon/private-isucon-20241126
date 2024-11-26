@@ -3,7 +3,6 @@ package main
 import (
 	crand "crypto/rand"
 	"fmt"
-	"html"
 	"html/template"
 	"io"
 	"log"
@@ -478,131 +477,22 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	csrfToken := getCSRFToken(r)
-	flash := getFlash(w, r, "notice")
-
-	// HTMLを直書きで生成
-	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Iscogram</title>
-    <link href="/css/style.css" media="screen" rel="stylesheet" type="text/css">
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="isu-title">
-          <h1><a href="/">Iscogram</a></h1>
-        </div>
-        <div class="isu-header-menu">`)
-
-	if me.ID == 0 {
-		fmt.Fprintf(w, `<div><a href="/login">ログイン</a></div>`)
-	} else {
-		fmt.Fprintf(w, `<div><a href="/@%s"><span class="isu-account-name">%s</span>さん</a></div>`, html.EscapeString(me.AccountName), html.EscapeString(me.AccountName))
-		if me.Authority == 1 {
-			fmt.Fprintf(w, `<div><a href="/admin/banned">管理者用ページ</a></div>`)
-		}
-		fmt.Fprintf(w, `<div><a href="/logout">ログアウト</a></div>`)
-	}
-	fmt.Fprintf(w, `</div>
-      </div>
-
-      <div class="isu-submit">
-        <form method="post" action="/" enctype="multipart/form-data">
-          <div class="isu-form">
-            <input type="file" name="file" value="file">
-          </div>
-          <div class="isu-form">
-            <textarea name="body"></textarea>
-          </div>
-          <div class="form-submit">
-            <input type="hidden" name="csrf_token" value="%s">
-            <input type="submit" name="submit" value="submit">
-          </div>`, csrfToken)
-
-	if flash != "" {
-		fmt.Fprintf(w, `<div id="notice-message" class="alert alert-danger">%s</div>`, html.EscapeString(flash))
+	fmap := template.FuncMap{
+		"imageURL": imageURL,
 	}
 
-	fmt.Fprintf(w, `
-        </form>
-      </div>
-
-      <div class="isu-posts">`)
-
-	// 投稿リスト
-	for _, post := range posts {
-		fmt.Fprintf(w, `
-        <div class="isu-post" id="pid_%d" data-created-at="%s">
-          <div class="isu-post-header">
-            <a href="/@%s" class="isu-post-account-name">%s</a>
-            <a href="/posts/%d" class="isu-post-permalink">
-              <time class="timeago" datetime="%s"></time>
-            </a>
-          </div>
-          <div class="isu-post-image">
-            <img src="/image/%d.%s" class="isu-image">
-          </div>
-          <div class="isu-post-text">
-            <a href="/@%s" class="isu-post-account-name">%s</a>
-            %s
-          </div>
-          <div class="isu-post-comment">
-            <div class="isu-post-comment-count">
-              comments: <b>%d</b>
-            </div>`,
-			post.ID,
-			post.CreatedAt.Format("2006-01-02T15:04:05-07:00"),
-			html.EscapeString(post.User.AccountName),
-			html.EscapeString(post.User.AccountName),
-			post.ID,
-			post.CreatedAt.Format("2006-01-02T15:04:05-07:00"),
-			post.ID,
-			strings.TrimPrefix(post.Mime, "image/"),
-			html.EscapeString(post.User.AccountName),
-			html.EscapeString(post.User.AccountName),
-			html.EscapeString(post.Body),
-			post.CommentCount)
-
-		// コメントリスト
-		for _, comment := range post.Comments {
-			fmt.Fprintf(w, `
-            <div class="isu-comment">
-              <a href="/@%s" class="isu-comment-account-name">%s</a>
-              <span class="isu-comment-text">%s</span>
-            </div>`,
-				html.EscapeString(comment.User.AccountName),
-				html.EscapeString(comment.User.AccountName),
-				html.EscapeString(comment.Comment))
-		}
-
-		// コメント投稿フォーム
-		fmt.Fprintf(w, `
-            <div class="isu-comment-form">
-              <form method="post" action="/comment">
-                <input type="text" name="comment">
-                <input type="hidden" name="post_id" value="%d">
-                <input type="hidden" name="csrf_token" value="%s">
-                <input type="submit" name="submit" value="submit">
-              </form>
-            </div>
-          </div>
-        </div>`, post.ID, csrfToken)
-	}
-
-	fmt.Fprintf(w, `
-      </div>
-      <div id="isu-post-more">
-        <button id="isu-post-more-btn">もっと見る</button>
-        <img class="isu-loading-icon" src="/img/ajax-loader.gif">
-      </div>
-    </div>
-    <script src="/js/timeago.min.js"></script>
-    <script src="/js/main.js"></script>
-  </body>
-</html>`)
+	// TODO: fmap の部分でキャッシュできなかった
+	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("index.html"),
+		getTemplPath("posts.html"),
+		getTemplPath("post.html"),
+	)).Execute(w, struct {
+		Posts     []Post
+		Me        User
+		CSRFToken string
+		Flash     string
+	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
 }
 
 func getAccountName(w http.ResponseWriter, r *http.Request) {
