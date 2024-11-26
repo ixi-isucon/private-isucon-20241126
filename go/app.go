@@ -182,11 +182,39 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
 	var posts []Post
 
+	// 投稿IDのリストを作成
+	postIDs := make([]int, len(results))
+	for i, p := range results {
+		postIDs[i] = p.ID
+	}
+
+	// コメント数を一度のクエリで取得
+	query, args, err := sqlx.In("SELECT post_id, COUNT(*) AS count FROM comments WHERE post_id IN (?) GROUP BY post_id", postIDs)
+	if err != nil {
+		return nil, err
+	}
+	var commentCounts []struct {
+		PostID int `db:"post_id"`
+		Count  int `db:"count"`
+	}
+	err = db.Select(&commentCounts, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// コメント数をマッピング
+	commentCountMap := make(map[int]int)
+	for _, cc := range commentCounts {
+		commentCountMap[cc.PostID] = cc.Count
+	}
+
 	for _, p := range results {
-		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
-		if err != nil {
-			return nil, err
-		}
+		// err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		p.CommentCount = commentCountMap[p.ID]
 
 		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
 		if !allComments {
