@@ -27,7 +27,7 @@ func main() {
 	defer db.Close()
 
 	// 保存先ディレクトリを作成
-	outputDir := "public/images"
+	outputDir := "/home/isucon/private_isu/webapp/public/image"
 	err = os.MkdirAll(outputDir, 0755)
 	if err != nil {
 		log.Fatalf("ディレクトリ作成エラー: %v", err)
