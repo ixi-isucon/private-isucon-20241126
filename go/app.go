@@ -792,10 +792,11 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	host := os.Getenv("ISUCONP_DB_HOST")
-	if host == "" {
-		host = "localhost"
-	}
+	// host := os.Getenv("ISUCONP_DB_HOST")
+	// if host == "" {
+	// 	host = "localhost"
+	// }
+	host := "192.168.1.11"
 	port := os.Getenv("ISUCONP_DB_PORT")
 	if port == "" {
 		port = "3306"
