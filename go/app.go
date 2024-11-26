@@ -18,6 +18,7 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
+	"github.com/go-chi/chi/v5"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
@@ -30,8 +31,8 @@ var (
 
 const (
 	postsPerPage  = 20
-	ISO8601Format = "2006-01-02T15:04:05-07:00" // comment
-	UploadLimit   = 10 * 1024 * 1024            // 10mb
+	ISO8601Format = "2006-01-02T15:04:05-07:00"
+	UploadLimit   = 10 * 1024 * 1024 // 10mb
 )
 
 type User struct {
@@ -65,15 +66,6 @@ type Comment struct {
 	User      User
 }
 
-type PostAndUser struct {
-	ID          int       `db:"id"`
-	UserID      int       `db:"user_id"`
-	Body        string    `db:"body"`
-	CreatedAt   time.Time `db:"created_at"`
-	Mime        string    `db:"mime"`
-	AccountName string    `db:"account_name"`
-}
-
 func init() {
 	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
 	if memdAddr == "" {
@@ -82,6 +74,20 @@ func init() {
 	memcacheClient := memcache.New(memdAddr)
 	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
+
+func dbInitialize() {
+	sqls := []string{
+		"DELETE FROM users WHERE id > 1000",
+		"DELETE FROM posts WHERE id > 10000",
+		"DELETE FROM comments WHERE id > 100000",
+		"UPDATE users SET del_flg = 0",
+		"UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
+	}
+
+	for _, sql := range sqls {
+		db.Exec(sql)
+	}
 }
 
 func tryLogin(accountName, password string) *User {
@@ -198,19 +204,19 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.Comments = comments
 
-		// err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		// if err != nil {
-		// 	return nil, err
-		// }
+		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
+		if err != nil {
+			return nil, err
+		}
 
 		p.CSRFToken = csrfToken
 
-		// if p.User.DelFlg == 0 {
-		posts = append(posts, p)
-		// }
-		// if len(posts) >= postsPerPage {
-		// 	break
-		// }
+		if p.User.DelFlg == 0 {
+			posts = append(posts, p)
+		}
+		if len(posts) >= postsPerPage {
+			break
+		}
 	}
 
 	return posts, nil
@@ -375,33 +381,17 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func convertPostAndUsersToPosts(data []PostAndUser) []Post {
-	posts := make([]Post, len(data))
-	for i, d := range data {
-		posts[i] = Post{
-			ID:        d.ID,
-			UserID:    d.UserID,
-			Body:      d.Body,
-			CreatedAt: d.CreatedAt,
-			Mime:      d.Mime,
-		}
-	}
-	return posts
-}
-
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 
-	postAndUsers := []PostAndUser{}
+	results := []Post{}
 
-	err := db.Select(&postAndUsers,
-		fmt.Sprintf("SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 ORDER BY p.created_at DESC LIMIT %d", postsPerPage))
+	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	results := convertPostAndUsersToPosts(postAndUsers)
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
 		log.Print(err)
@@ -440,16 +430,13 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postAndUsers := []PostAndUser{}
+	results := []Post{}
 
-	err = db.Select(&postAndUsers,
-		fmt.Sprintf("SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 ORDER BY p.created_at DESC LIMIT %d", postsPerPage))
+	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
 	if err != nil {
 		log.Print(err)
 		return
 	}
-
-	results := convertPostAndUsersToPosts(postAndUsers)
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
@@ -532,25 +519,12 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// results := []Post{}
-	// err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
-	// if err != nil {
-	// 	log.Print(err)
-	// 	return
-	// }
-
-	postAndUsers := []PostAndUser{}
-
-	err = db.Select(&postAndUsers,
-
-		"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND p.created_at <= ? ORDER BY p.created_at DESC LIMIT ?",
-		t.Format(ISO8601Format), postsPerPage)
+	results := []Post{}
+	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
 	if err != nil {
 		log.Print(err)
 		return
 	}
-
-	results := convertPostAndUsersToPosts(postAndUsers)
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
@@ -581,16 +555,12 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postAndUsers := []PostAndUser{}
-
-	err = db.Select(&postAndUsers,
-		"SELECT p.id, p.user_id, p.body, p.created_at, p.mime, u.account_name FROM `posts` AS p JOIN `users` AS u ON (p.user_id=u.id) WHERE u.del_flg=0 AND p.id = ? ORDER BY p.created_at DESC LIMIT ?", pid, postsPerPage)
+	results := []Post{}
+	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
 	if err != nil {
 		log.Print(err)
 		return
 	}
-
-	results := convertPostAndUsersToPosts(postAndUsers)
 
 	posts, err := makePosts(results, getCSRFToken(r), true)
 	if err != nil {
@@ -644,19 +614,15 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mime := ""
-	fileExt := "jpg"
 	if file != nil {
 		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
-			fileExt = "jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
-			fileExt = "png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
-			fileExt = "gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -667,13 +633,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fileData, err := io.ReadAll(file)
+	filedata, err := io.ReadAll(file)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	if len(fileData) > UploadLimit {
+	if len(filedata) > UploadLimit {
 		session := getSession(r)
 		session.Values["notice"] = "ファイルサイズが大きすぎます"
 		session.Save(r, w)
@@ -687,7 +653,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		query,
 		me.ID,
 		mime,
-		"", // おもいので空文字列 （後でカラムごと消す）
+		filedata,
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -701,22 +667,39 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		// fileData を /home/isucon/private_isu/webapp/public/image に保存
-		path := "/home/isucon/private_isu/webapp/public/image"
-		filename := fmt.Sprintf("%d.%s", pid, fileExt)
+	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
+}
 
-		f, err := os.Create(path + "/" + filename)
+func getImage(w http.ResponseWriter, r *http.Request) {
+	pidStr := r.PathValue("id")
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	post := Post{}
+	err = db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	ext := r.PathValue("ext")
+
+	if ext == "jpg" && post.Mime == "image/jpeg" ||
+		ext == "png" && post.Mime == "image/png" ||
+		ext == "gif" && post.Mime == "image/gif" {
+		w.Header().Set("Content-Type", post.Mime)
+		_, err := w.Write(post.Imgdata)
 		if err != nil {
 			log.Print(err)
 			return
 		}
+		return
+	}
 
-		defer f.Close()
-		f.Write(fileData)
-	}()
-
-	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func postComment(w http.ResponseWriter, r *http.Request) {
@@ -806,4 +789,66 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
+}
+
+func main() {
+	host := os.Getenv("ISUCONP_DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+	port := os.Getenv("ISUCONP_DB_PORT")
+	if port == "" {
+		port = "3306"
+	}
+	_, err := strconv.Atoi(port)
+	if err != nil {
+		log.Fatalf("Failed to read DB port number from an environment variable ISUCONP_DB_PORT.\nError: %s", err.Error())
+	}
+	user := os.Getenv("ISUCONP_DB_USER")
+	if user == "" {
+		user = "root"
+	}
+	password := os.Getenv("ISUCONP_DB_PASSWORD")
+	dbname := os.Getenv("ISUCONP_DB_NAME")
+	if dbname == "" {
+		dbname = "isuconp"
+	}
+
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
+		user,
+		password,
+		host,
+		port,
+		dbname,
+	)
+
+	db, err = sqlx.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("Failed to connect to DB: %s.", err.Error())
+	}
+	defer db.Close()
+
+	r := chi.NewRouter()
+
+	r.Get("/initialize", getInitialize)
+	r.Get("/login", getLogin)
+	r.Post("/login", postLogin)
+	r.Get("/register", getRegister)
+	r.Post("/register", postRegister)
+	r.Get("/logout", getLogout)
+	r.Get("/", getIndex)
+	r.Get("/posts", getPosts)
+	r.Get("/posts/{id}", getPostsID)
+	r.Post("/", postIndex)
+	r.Get("/image/{id}.{ext}", getImage)
+	r.Post("/comment", postComment)
+	r.Get("/admin/banned", getAdminBanned)
+	r.Post("/admin/banned", postAdminBanned)
+	r.Get(`/@{accountName:[a-zA-Z]+}`, getAccountName)
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		http.FileServer(http.Dir("../public")).ServeHTTP(w, r)
+	})
+
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
