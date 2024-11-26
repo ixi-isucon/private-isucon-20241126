@@ -15,7 +15,7 @@ all:
       hosts:
         isu1:
         # isu2:
-        # isu3:
+        isu3:
 
     no_web:
       hosts:
@@ -33,7 +33,7 @@ all:
       hosts:
         # isu1:
         isu2:
-        isu3:
+        # isu3:
 
   hosts:
     isu1:
