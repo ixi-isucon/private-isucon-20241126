@@ -477,49 +477,22 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 直接HTML構造を出力
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, `
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-	<meta charset="UTF-8">
-	<title>Posts</title>
-</head>
-<body>
-	<header>
-		<h1>Welcome %s</h1>
-		<a href="/logout">Logout</a>
-	</header>
-	<main>
-		<section>
-			<h2>Posts</h2>
-			<ul>
-`, template.HTMLEscapeString(me.AccountName))
-
-	// 投稿をループして出力
-	for _, post := range posts {
-		fmt.Fprintf(w, `
-				<li>
-					<h3>%s</h3>
-					<p>%s</p>
-					<small>Posted by: %s at %s</small>
-				</li>
-`,
-			template.HTMLEscapeString(post.Body),
-			template.HTMLEscapeString(imageURL(post)),
-			template.HTMLEscapeString(post.User.AccountName),
-			post.CreatedAt.Format(time.RFC1123),
-		)
+	fmap := template.FuncMap{
+		"imageURL": imageURL,
 	}
 
-	fmt.Fprint(w, `
-			</ul>
-		</section>
-	</main>
-</body>
-</html>
-`)
+	// TODO: fmap の部分でキャッシュできなかった
+	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("index.html"),
+		getTemplPath("posts.html"),
+		getTemplPath("post.html"),
+	)).Execute(w, struct {
+		Posts     []Post
+		Me        User
+		CSRFToken string
+		Flash     string
+	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
 }
 
 func getAccountName(w http.ResponseWriter, r *http.Request) {
