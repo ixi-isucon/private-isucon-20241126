@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -24,8 +25,10 @@ import (
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db        *sqlx.DB
+	store     *gsm.MemcacheStore
+	once      sync.Once
+	templates map[string]*template.Template
 )
 
 const (
@@ -82,6 +85,34 @@ func init() {
 	memcacheClient := memcache.New(memdAddr)
 	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
+
+func loadTemplates() {
+	// fmap が必要な部分はコメントアウト TODO
+	templates = map[string]*template.Template{
+		"login":    template.Must(template.ParseFiles(getTemplPath("layout.html"), getTemplPath("login.html"))),
+		"register": template.Must(template.ParseFiles(getTemplPath("layout.html"), getTemplPath("register.html"))),
+		//"user":     template.Must(template.ParseFiles(getTemplPath("layout.html"), getTemplPath("user.html"), getTemplPath("posts.html"), getTemplPath("post.html"))),
+		"banned": template.Must(template.ParseFiles(getTemplPath("layout.html"), getTemplPath("banned.html"))),
+		//		"post_id":  template.Must(template.ParseFiles(getTemplPath("layout.html"), getTemplPath("post_id.html"), getTemplPath("post.html"))),
+	}
+}
+
+func getTemplate(name string) *template.Template {
+	once.Do(loadTemplates)
+	tmpl, ok := templates[name]
+	if !ok {
+		log.Fatalf("テンプレート '%s' が見つかりません", name)
+	}
+	return tmpl
+}
+
+func renderTemplate(w http.ResponseWriter, name string, data interface{}) {
+	tmpl := getTemplate(name)
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("テンプレート実行エラー: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func dbInitialize() {
@@ -309,13 +340,11 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("login.html")),
-	).Execute(w, struct {
+	data := struct {
 		Me    User
 		Flash string
-	}{me, getFlash(w, r, "notice")})
+	}{me, getFlash(w, r, "notice")}
+	renderTemplate(w, "login", data)
 }
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
@@ -348,13 +377,11 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("register.html")),
-	).Execute(w, struct {
+	data := struct {
 		Me    User
 		Flash string
-	}{User{}, getFlash(w, r, "notice")})
+	}{User{}, getFlash(w, r, "notice")}
+	renderTemplate(w, "register", data)
 }
 
 func postRegister(w http.ResponseWriter, r *http.Request) {
@@ -454,6 +481,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		"imageURL": imageURL,
 	}
 
+	// TODO: fmap の部分でキャッシュできなかった
 	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("index.html"),
@@ -833,14 +861,12 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("banned.html")),
-	).Execute(w, struct {
+	data := struct {
 		Users     []User
 		Me        User
 		CSRFToken string
-	}{users, me, getCSRFToken(r)})
+	}{users, me, getCSRFToken(r)}
+	renderTemplate(w, "banned", data)
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
