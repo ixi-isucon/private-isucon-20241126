@@ -5,7 +5,6 @@
         src:  /var/log/mysql/mysqld-slow.log,
         dest: "/var/log/mysql/mysqld-slow.log_{{ now(fmt='%H:%M:%S') }}"
       }
-  changed_when: False
   notify:
     - restart mysql
   ignore_errors: yes

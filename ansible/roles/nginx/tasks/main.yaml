@@ -5,7 +5,6 @@
         src: /var/log/nginx/access.log,
         dest: "/var/log/nginx/access.log_{{ now(fmt='%H:%M:%S') }}"
       }
-  changed_when: False
   notify:
     - restart nginx
   ignore_errors: yes
