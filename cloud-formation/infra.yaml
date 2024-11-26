@@ -5,9 +5,13 @@ Parameters:
   KeyPairName:
     Description: "Amazon EC2 Key Pair"
     Type: AWS::EC2::KeyPair::KeyName
-  GitHubUsername:
-    Description: "GitHub Username for SSH public key"
+  # GitHubUsername:
+  #   Description: "GitHub Username for SSH public key"
+  #   Type: String
+  GitHubUsernames:
+    Description: "GitHub Usernames for SSH public key (comma separated)"
     Type: String
+    Default: "lirlia,kotaroyamazaki,tsuba3"
 
 Resources:
   VPC:
@@ -94,11 +98,15 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          GITHUB_USER=${GitHubUsername}
+
           mkdir -p /home/isucon/.ssh
-          curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
           chown -R isucon:isucon /home/isucon/.ssh
+          touch /home/isucon/.ssh/authorized_keys
           chmod 600 /home/isucon/.ssh/authorized_keys
+
+          echo ${GitHubUsernames} | tr "," "\n" | while read GITHUB_USER; do
+            curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
+          done
 
   ServerInstance2:
     Type: AWS::EC2::Instance
@@ -121,11 +129,15 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          GITHUB_USER=${GitHubUsername}
+
           mkdir -p /home/isucon/.ssh
-          curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
           chown -R isucon:isucon /home/isucon/.ssh
+          touch /home/isucon/.ssh/authorized_keys
           chmod 600 /home/isucon/.ssh/authorized_keys
+
+          echo ${GitHubUsernames} | tr "," "\n" | while read GITHUB_USER; do
+            curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
+          done
 
   ServerInstance3:
     Type: AWS::EC2::Instance
@@ -148,11 +160,15 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          GITHUB_USER=${GitHubUsername}
+
           mkdir -p /home/isucon/.ssh
-          curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
           chown -R isucon:isucon /home/isucon/.ssh
+          touch /home/isucon/.ssh/authorized_keys
           chmod 600 /home/isucon/.ssh/authorized_keys
+
+          echo ${GitHubUsernames} | tr "," "\n" | while read GITHUB_USER; do
+            curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
+          done
 
   BenchmarkerInstance:
     Type: AWS::EC2::Instance
@@ -175,8 +191,12 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          GITHUB_USER=${GitHubUsername}
+
           mkdir -p /home/isucon/.ssh
-          curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
           chown -R isucon:isucon /home/isucon/.ssh
+          touch /home/isucon/.ssh/authorized_keys
           chmod 600 /home/isucon/.ssh/authorized_keys
+
+          echo ${GitHubUsernames} | tr "," "\n" | while read GITHUB_USER; do
+            curl -s https://github.com/$GITHUB_USER.keys >> /home/isucon/.ssh/authorized_keys
+          done
