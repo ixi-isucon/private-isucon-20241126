@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strconv"
 
@@ -12,10 +13,10 @@ import (
 )
 
 func main() {
-	// host := os.Getenv("ISUCONP_DB_HOST")
-	// if host == "" {
-	// 	host = "localhost"
-	// }
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	host := "192.168.1.11"
 	port := os.Getenv("ISUCONP_DB_PORT")
 	if port == "" {
