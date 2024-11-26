@@ -22,7 +22,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"github.com/samber/lo"
 )
 
 var (
@@ -266,29 +265,8 @@ ORDER BY post_id, created_at DESC`
 
 	// post_idごとにコメントをマッピング
 	commentsMap := make(map[int][]Comment)
-	userIDs := make([]int, len(allComments))
 	for _, comment := range allComments {
 		commentsMap[comment.PostID] = append(commentsMap[comment.PostID], comment)
-		userIDs = append(userIDs, comment.UserID)
-	}
-
-	// comment のユーザを取得
-	userIDs = lo.Uniq(userIDs)
-	query, args, err = sqlx.In("SELECT * FROM users WHERE id IN (?)", userIDs)
-	if err != nil {
-		return nil, err
-	}
-	query = db.Rebind(query)
-	var users []User
-	err = db.Select(&users, query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	// ユーザをマッピング
-	userMap := make(map[int]User, len(users))
-	for _, user := range users {
-		userMap[user.ID] = user
 	}
 
 	for _, p := range results {
@@ -310,15 +288,12 @@ ORDER BY post_id, created_at DESC`
 		// }
 
 		comments := commentsMap[p.ID]
-		for _, c := range comments {
-			c.User = userMap[c.UserID]
+		for i := 0; i < len(comments); i++ {
+			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+			if err != nil {
+				return nil, err
+			}
 		}
-		// for i := 0; i < len(comments); i++ {
-		// 	err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// }
 
 		// reverse
 		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
