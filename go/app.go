@@ -287,10 +287,7 @@ ORDER BY post_id, created_at DESC`
 		// 	return nil, err
 		// }
 
-		comments, ok := commentsMap[p.ID]
-		if !ok {
-			return nil, fmt.Errorf("comments not found: post_id=%d", p.ID)
-		}
+		comments := commentsMap[p.ID]
 		for i := 0; i < len(comments); i++ {
 			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
 			if err != nil {
