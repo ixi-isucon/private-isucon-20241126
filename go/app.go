@@ -210,7 +210,7 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 	}
 }
 
-func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
+func makePosts(results []Post, csrfToken string, isAllComment bool) ([]Post, error) {
 	var posts []Post
 
 	// 投稿IDのリストを作成
@@ -239,6 +239,36 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		commentCountMap[cc.PostID] = cc.Count
 	}
 
+	// コメントを一括取得
+	query = `
+SELECT *
+FROM comments
+WHERE post_id IN (?)
+ORDER BY post_id, created_at DESC`
+
+	if !isAllComment {
+		query += " LIMIT 3"
+	}
+
+	query, args, err = sqlx.In(query, postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// クエリを準備
+	query = db.Rebind(query)
+	var allComments []Comment
+	err = db.Select(&allComments, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// post_idごとにコメントをマッピング
+	commentsMap := make(map[int][]Comment)
+	for _, comment := range allComments {
+		commentsMap[comment.PostID] = append(commentsMap[comment.PostID], comment)
+	}
+
 	for _, p := range results {
 		// err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
 		// if err != nil {
@@ -247,16 +277,20 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.CommentCount = commentCountMap[p.ID]
 
-		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		if !allComments {
-			query += " LIMIT 3"
-		}
-		var comments []Comment
-		err = db.Select(&comments, query, p.ID)
-		if err != nil {
-			return nil, err
-		}
+		// query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
+		// if !isAllComment {
+		// 	query += " LIMIT 3"
+		// }
+		// var comments []Comment
+		// err = db.Select(&comments, query, p.ID)
+		// if err != nil {
+		// 	return nil, err
+		// }
 
+		comments, ok := commentsMap[p.ID]
+		if !ok {
+			return nil, fmt.Errorf("comments not found: post_id=%d", p.ID)
+		}
 		for i := 0; i < len(comments); i++ {
 			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
 			if err != nil {
