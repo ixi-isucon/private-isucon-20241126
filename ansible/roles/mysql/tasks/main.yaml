@@ -1,3 +1,15 @@
+- name: backup log
+  command: mv {{ item.src }} {{ item.dest }}
+  loop:
+    - {
+        src:  /var/log/mysql/mysqld-slow.log,
+        dest: "/var/log/mysql/mysqld-slow.log_{{ now(fmt='%H:%M:%S') }}"
+      }
+  changed_when: False
+  notify:
+    - restart mysql
+  ignore_errors: yes
+
 - name: backup files
   copy:
     src: "{{ item }}"
@@ -15,13 +27,3 @@
     - restart mysql
   loop:
     - { src: my.cnf, dest: /etc/mysql/my.cnf }
-
-- name: move files if exists
-  command: mv {{ item.src }} {{ item.dest }}
-  loop:
-    - {
-        src:  /var/log/mysql/mysqld-slow.log,
-        dest: "/var/log/mysql/mysqld-slow.log_{{ now(fmt='%H:%M:%S') }}"
-      }
-  changed_when: False
-  ignore_errors: yes

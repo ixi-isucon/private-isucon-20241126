@@ -1,10 +1,14 @@
-# Nginx の設定ファイルのバックアップ
-- name: backup access log
-  copy:
-    src: /var/log/nginx/access.log
-    dest: /var/log/nginx/access.log_{{ now(fmt='%H:%M:%S') }}
-    remote_src: yes
+- name: backup log
+  command: mv {{ item.src }} {{ item.dest }}
+  loop:
+    - {
+        src: /var/log/nginx/access.log,
+        dest: "/var/log/nginx/access.log_{{ now(fmt='%H:%M:%S') }}"
+      }
   changed_when: False
+  notify:
+    - restart nginx
+  ignore_errors: yes
 
 # Nginx の設定ファイルのコピー
 - name: copy nginx configuration
