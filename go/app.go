@@ -2,7 +2,6 @@ package main
 
 import (
 	crand "crypto/rand"
-	"crypto/sha512"
 	"fmt"
 	"html/template"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -124,28 +124,16 @@ func escapeshellarg(arg string) string {
 	return "'" + strings.Replace(arg, "'", "'\\''", -1) + "'"
 }
 
-// digest Go実装（SHA-512のダイジェストを計算）
 func digest(src string) string {
-	s := escapeshellarg(src)
-	// SHA-512でダイジェストを計算
-	hash := sha512.New()
-	hash.Write([]byte(s))
-	hashSum := hash.Sum(nil)
+	// opensslのバージョンによっては (stdin)= というのがつくので取る
+	out, err := exec.Command("/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
+	if err != nil {
+		log.Print(err)
+		return ""
+	}
 
-	// バイト列を16進数に変換
-	return fmt.Sprintf("%x", hashSum)
+	return strings.TrimSuffix(string(out), "\n")
 }
-
-// func digest(src string) string {
-// 	// opensslのバージョンによっては (stdin)= というのがつくので取る
-// 	out, err := exec.Command("/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
-// 	if err != nil {
-// 		log.Print(err)
-// 		return ""
-// 	}
-
-// 	return strings.TrimSuffix(string(out), "\n")
-// }
 
 func calculateSalt(accountName string) string {
 	return digest(accountName)
