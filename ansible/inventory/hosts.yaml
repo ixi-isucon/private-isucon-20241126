@@ -1,53 +1,53 @@
 ---
-# all:
-#   children:
-#     web:
-#       hosts:
-#         isu1:
-#         # isu2:
-#         # isu3:
-#     db:
-#       hosts:
-#         # isu1:
-#         isu2:
-#         # isu3:
-#     app:
-#       hosts:
-#         isu1:
-#         # isu2:
-#         # isu3:
+all:
+  children:
+    web:
+      hosts:
+        isu1:
+        # isu2:
+        # isu3:
+    db:
+      hosts:
+        # isu1:
+        isu2:
+        # isu3:
+    app:
+      hosts:
+        isu1:
+        # isu2:
+        # isu3:
 
-#     no_web:
-#       hosts:
-#         # isu1:
-#         isu2:
-#         isu3:
+    no_web:
+      hosts:
+        # isu1:
+        isu2:
+        isu3:
 
-#     no_db:
-#       hosts:
-#         isu1:
-#         # isu2:
-#         isu3:
+    no_db:
+      hosts:
+        isu1:
+        # isu2:
+        isu3:
 
-#     no_app:
-#       hosts:
-#         # isu1:
-#         isu2:
-#         isu3:
+    no_app:
+      hosts:
+        # isu1:
+        isu2:
+        isu3:
 
-#   hosts:
-#     isu1:
-#       ansible_host: 52.194.243.138
-#       ansible_user: isucon
-#       # arch: amd64
-#       arch: arm64
-#     isu2:
-#       ansible_host: 3.112.19.84
-#       ansible_user: isucon
-#       # arch: amd64
-#       arch: arm64
-#     isu3:
-#       ansible_host: 3.113.12.237
-#       ansible_user: isucon
-#       # arch: amd64
-#       arch: arm64
+  hosts:
+    isu1:
+      ansible_host: 18.177.141.215
+      ansible_user: isucon
+      # arch: amd64
+      arch: arm64
+    isu2:
+      ansible_host: 3.112.244.111
+      ansible_user: isucon
+      # arch: amd64
+      arch: arm64
+    isu3:
+      ansible_host: 52.195.222.130
+      ansible_user: isucon
+      # arch: amd64
+      arch: arm64
