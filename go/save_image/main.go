@@ -19,7 +19,7 @@ type Post struct {
 
 func main() {
 	// データベース接続
-	dsn := "isuconp:isuconp@tcp(127.0.0.1:3306)/isuconp"
+	dsn := "isuconp:isuconp@tcp(192.168.1.11:3306)/isuconp"
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("データベース接続エラー: %v", err)
