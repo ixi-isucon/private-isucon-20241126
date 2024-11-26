@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
+
+	// _ "net/http/pprof"
 	"os"
 	"strconv"
 
